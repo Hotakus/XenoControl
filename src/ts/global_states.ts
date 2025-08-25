@@ -3,14 +3,21 @@ import {nextTick, reactive} from "vue";
 import {getCurrentWindow} from "@tauri-apps/api/window";
 import {invoke} from "@tauri-apps/api/core";
 import {DeviceInfo} from "@/ts/LeftPanel.ts";
+import { locale } from "@tauri-apps/plugin-os";
 
 let appWindow = getCurrentWindow();
 
+export interface LastConnectedDevice {
+    vid: number;
+    pid: number;
+    sub_pid: number;
+}
 
 // ---------- 响应式应用状态 ----------
 export const state = reactive({
     version: '0.0.0',
     is_release_env: false,
+    locale: 'zh-CN',
 
     titlebar_visible: true,
 
@@ -22,6 +29,8 @@ export const state = reactive({
 
     autoStart: false,
     minimizeToTray: false,
+    rememberLastConnection: false,
+    lastConnectedDevice: null as LastConnectedDevice | null,
     theme: 'light',
     pollingFrequency: 125,
     previousPreset: "default",
@@ -55,6 +64,12 @@ export const state = reactive({
     deviceType: 'xbox',
     mappings: [] as any[],
     editingMappingId: null as number | null,
+    // 用于模态窗口中的触发状态绑定
+    triggerState: {
+        initial_interval: 300,
+        min_interval: 100,
+        acceleration: 0.8,
+    },
 
     preventNextClick: false,
     currentKeys: {

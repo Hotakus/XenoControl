@@ -25,6 +25,8 @@ export async function updateSettings() {
     const newSettings = {
         auto_start: state.autoStart,
         minimize_to_tray: state.minimizeToTray,
+        remember_last_connection: state.rememberLastConnection,
+        last_connected_device: state.lastConnectedDevice,
         theme: state.theme,
         polling_frequency: state.pollingFrequency,
         previous_preset: state.previousPreset
@@ -64,7 +66,9 @@ export async function openButtonMapModal(title = "添加按键映射", selectedB
 }
 
 export async function editButtonMap(id: number) {
-    const mapping = state.mappings.find(m => m.id === id);
+    // 从后端直接获取最新的映射数据
+    const mapping: any = await invoke("get_mapping_by_id", {id});
+
     if (mapping) {
         // --- 新增转换和状态恢复逻辑 ---
         const raw_key: string = mapping.composed_shortcut_key; // 获取英文原始值
@@ -82,10 +86,17 @@ export async function editButtonMap(id: number) {
         // 查找不是修饰键的部分作为主键
         state.currentKeys.key = parts.find(p => !['Control', 'Shift', 'Alt', 'Meta'].includes(p)) || null;
 
+        // 3. 恢复 trigger state (假设后端返回的字段名是 snake_case)
+        state.triggerState.initial_interval = mapping.initial_interval ?? 300;
+        state.triggerState.min_interval = mapping.min_interval ?? 100;
+        state.triggerState.acceleration = mapping.acceleration ?? 0.8;
+
         // 使用转换后的中文值和恢复的状态打开模态窗口
         console.log("编辑按钮映射", id);
         await openButtonMapModal("编辑按键映射", mapping.composed_button, display_key, mapping.id);
         // --- 逻辑结束 ---
+    } else {
+        updateStatusMessage(`无法找到 ID 为 ${id} 的映射`, true);
     }
 }
 
@@ -108,6 +119,10 @@ export async function deleteButtonMap(id: number) {
 
 
 export async function addButtonMap() {
+    // 重置 trigger state 为默认值
+    state.triggerState.initial_interval = 300;
+    state.triggerState.min_interval = 100;
+    state.triggerState.acceleration = 0.8;
     await openButtonMapModal();
 }
 
@@ -290,34 +305,49 @@ const buttonTextMapLists = {
         {value: 'Y', text: 'Y 按钮'},
         {value: 'LB', text: '左肩键 (LB)'},
         {value: 'RB', text: '右肩键 (RB)'},
-        {value: 'LT', text: '左扳机 (LT)'},
-        {value: 'RT', text: '右扳机 (RT)'},
-        {value: 'START', text: '开始按钮'},
-        {value: 'SELECT', text: '选择按钮'}
+        {value: 'LeftStick', text: '左摇杆'},
+        {value: 'RightStick', text: '右摇杆'},
+        {value: 'Back', text: 'Back 按钮'},
+        {value: 'Start', text: 'Start 按钮'},
+        {value: 'Guide', text: 'Guide 按钮'},
+        {value: 'DPadUp', text: '方向键上'},
+        {value: 'DPadDown', text: '方向键下'},
+        {value: 'DPadLeft', text: '方向键左'},
+        {value: 'DPadRight', text: '方向键右'},
     ],
     ps: [
-        {value: 'CROSS', text: '叉按钮 (CROSS)'},
-        {value: 'CIRCLE', text: '圆按钮 (CIRCLE)'},
-        {value: 'SQUARE', text: '方按钮 (SQUARE)'},
-        {value: 'TRIANGLE', text: '三角按钮 (TRIANGLE)'},
+        {value: 'Cross', text: '叉按钮 (Cross)'},
+        {value: 'Circle', text: '圆按钮 (Circle)'},
+        {value: 'Square', text: '方按钮 (Square)'},
+        {value: 'Triangle', text: '三角按钮 (Triangle)'},
         {value: 'L1', text: '左肩键 (L1)'},
         {value: 'R1', text: '右肩键 (R1)'},
-        {value: 'L2', text: '左扳机 (L2)'},
-        {value: 'R2', text: '右扳机 (R2)'},
-        {value: 'OPTIONS', text: '选项按钮'},
-        {value: 'SHARE', text: '分享按钮'}
+        {value: 'LeftStick', text: '左摇杆'},
+        {value: 'RightStick', text: '右摇杆'},
+        {value: 'Share', text: 'Share 按钮'},
+        {value: 'Options', text: 'Options 按钮'},
+        {value: 'PS', text: 'PS 按钮'},
+        {value: 'DPadUp', text: '方向键上'},
+        {value: 'DPadDown', text: '方向键下'},
+        {value: 'DPadLeft', text: '方向键左'},
+        {value: 'DPadRight', text: '方向键右'},
     ],
-    switchpro: [
-        {value: 'B', text: 'B 按钮'},
+    switch: [ // 新增 Switch 布局
         {value: 'A', text: 'A 按钮'},
-        {value: 'Y', text: 'Y 按钮'},
+        {value: 'B', text: 'B 按钮'},
         {value: 'X', text: 'X 按钮'},
+        {value: 'Y', text: 'Y 按钮'},
         {value: 'L', text: '左肩键 (L)'},
         {value: 'R', text: '右肩键 (R)'},
-        {value: 'ZL', text: '左扳机 (ZL)'},
-        {value: 'ZR', text: '右扳机 (ZR)'},
-        {value: 'PLUS', text: '加号按钮'},
-        {value: 'MINUS', text: '减号按钮'}
+        {value: 'LeftStick', text: '左摇杆'},
+        {value: 'RightStick', text: '右摇杆'},
+        {value: 'Minus', text: 'Minus 按钮'},
+        {value: 'Plus', text: 'Plus 按钮'},
+        {value: 'Home', text: 'Home 按钮'},
+        {value: 'DPadUp', text: '方向键上'},
+        {value: 'DPadDown', text: '方向键下'},
+        {value: 'DPadLeft', text: '方向键左'},
+        {value: 'DPadRight', text: '方向键右'},
     ]
 }
 
@@ -336,8 +366,8 @@ export function updateControllerButtons() {
             state.buttonsText = buttonTextMapLists.ps;
             break;
         }
-        case "Switch": {
-            state.buttonsText = buttonTextMapLists.switchpro;
+        case "Switch": { // 添加 Switch case
+            state.buttonsText = buttonTextMapLists.switch;
             break;
         }
         default: {
@@ -361,3 +391,7 @@ export async function openDevTools() {
 export async function resetSettings() {
     // TODO: 重置设置
 }
+
+export const openGithubLink = () => {
+    invoke("open_url", {url: "https://github.com/Hotakus/XialloControl"});
+};

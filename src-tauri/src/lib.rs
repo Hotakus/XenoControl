@@ -1,7 +1,7 @@
 // "windows": [
 //       {
 //         "label": "main",
-//         "title": "XenoControl",
+//         "title": "XialloControl",
 //         "fullscreen": false,
 //         "decorations": true,
 //         "width": 1080,
@@ -101,14 +101,15 @@ fn create_main_window(app_handle: AppHandle) -> WebviewWindow {
     #[cfg(target_os = "windows")]
     let decorations = false;
     #[cfg(not(target_os = "windows"))]
-    let decorations = true;
+    // let decorations = true;
+    let decorations = false;
 
     WebviewWindowBuilder::new(
         &app_handle.clone(),
         "main",
         WebviewUrl::App("index.html".into()),
     )
-    .title("XenoControl")
+    .title("XialloControl")
     .min_inner_size(1130.0, 740.0)
     .resizable(true)
     .fullscreen(false)
@@ -121,6 +122,18 @@ fn create_main_window(app_handle: AppHandle) -> WebviewWindow {
     .devtools(cfg!(debug_assertions))
     .build()
     .expect("Failed to create main window")
+}
+
+#[tauri::command]
+fn get_locale() -> String {
+    let locale = tauri_plugin_os::locale();
+    if let Some(locale) = locale {
+        log::info!("成功获取到系统语言: {locale:#?}");
+        locale
+    } else {
+        log::warn!("无法获取系统语言，使用默认语言 zh-CN");
+        "zh-CN".to_string()
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -138,7 +151,7 @@ pub fn run() {
                         file_name: None,
                     },
                 ))
-                .level(log::LevelFilter::Info)
+                .level(log::LevelFilter::Debug)
                 .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
                 .max_file_size(1024 * 512 /* bytes */)
                 .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
@@ -166,18 +179,21 @@ pub fn run() {
             get_platform,
             open_devtools,
             is_release_env,
+            get_locale,
             controller::controller::query_devices,
             controller::controller::use_device,
             controller::controller::disconnect_device,
             controller::controller::physical_disconnect_device,
             controller::controller::set_frequency,
             controller::controller::get_controller_data,
+            controller::controller::try_auto_connect_last_device,
             controller::logic::controller_stick_drift_sampling,
             controller::logic::check_controller_deadzone,
             setting::get_current_settings,
             setting::update_settings,
             mapping::set_mapping,
             mapping::get_mappings,
+            mapping::get_mapping_by_id,
             mapping::update_mapping,
             mapping::add_mapping,
             mapping::delete_mapping,
