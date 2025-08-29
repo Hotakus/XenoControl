@@ -5,13 +5,15 @@
       <LeftPanel/>
       <RightPanel/>
     </div>
-    <WindowFooter/>
+<!--    <WindowFooter/>-->
     <MappingModal/>
     <JoystickCaliModal/>
+    <UpdateModal/>
   </div>
 </template>
 
 <script setup lang="ts">
+import UpdateModal from './vue/UpdateModal.vue'
 import WindowHeader from './vue/WindowHeader.vue'
 import LeftPanel from './vue/LeftPanel.vue'
 import RightPanel from './vue/RightPanel.vue'
@@ -28,4 +30,10 @@ onMounted(() => {
 
 <style>
 @import './assets/styles.css'; /* 全局样式 */
+
+.divider {
+  width: 10px;
+  margin-top: 2%;
+  margin-bottom: 2%;
+}
 </style>
